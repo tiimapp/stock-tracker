@@ -1,6 +1,6 @@
 # Stock Tracker - Project Plan 📋
 
-## Status: All Phases Complete ✅ | Live on GitHub
+## Status: Phase 1-4 Complete ✅ | Phase 5 (Futures) Planned 🚧
 
 ---
 
@@ -105,6 +105,7 @@
 | 2 | Core development | Code_G | ✅ Done |
 | 3 | Integration & testing | Both | ✅ Done |
 | 4 | GitHub & deployment | ClawBot | ✅ Done |
+| 5 | Futures support | Code_G | 📋 Planned |
 
 ---
 
@@ -113,6 +114,7 @@
 1. **Add LICENSE file** (optional)
 2. **Update README with GitHub badge**
 3. **Deploy cron job** for daily reports (15:30 Asia/Shanghai, Mon-Fri)
+4. **Phase 5: Futures Support** (see below)
 
 ---
 
@@ -120,10 +122,73 @@
 
 - [ ] Any additional stocks to track?
 - [ ] Any specific news keywords to filter?
+- [ ] Which futures to track first? (棉花 CF, 螺纹钢 RB, 铁矿石 I, etc.)
 
 ---
 
-**Last Updated:** 2026-03-04  
+## Phase 5: Futures Support (PLANNED 📋)
+
+**Status:** Capability verified by Code_G (2026-03-04)
+
+### 5.1 Research & API Selection ✅
+
+- [x] Verify current fetcher capabilities (stocks only)
+- [x] Research futures API endpoints (Sina, Tencent, AKShare)
+- [x] Document required changes
+- [x] Create capability report: `FUTURES_CAPABILITY_REPORT.md`
+
+### 5.2 Core Implementation (TODO)
+
+**Recommended Approach:** Use AKShare library (handles all Chinese exchanges)
+
+- [ ] Add AKShare dependency to requirements
+- [ ] Create `src/futures_fetcher.py`
+- [ ] Add futures symbol format detection (czce_, DCE_, SHF_, etc.)
+- [ ] Implement futures-specific field parsing:
+  - Open interest (持仓量)
+  - Settlement price (结算价)
+  - Change vs settlement (涨跌)
+- [ ] Update `src/main.py` to support both stocks and futures
+
+### 5.3 Configuration (TODO)
+
+- [ ] Create `config/futures.json` (futures contracts to track)
+- [ ] Update `config/settings.json` with futures options
+- [ ] Add exchange prefix mapping (czce_, DCE_, SHF_, CFFEX_)
+
+### 5.4 Reporting (TODO)
+
+- [ ] Create futures report template (similar to stock reports)
+- [ ] Add futures-specific analysis (basis, term structure)
+- [ ] Update Discord delivery for futures reports
+
+### 5.5 Testing & Deployment (TODO)
+
+- [ ] Test with CF2605 (棉花) and other liquid contracts
+- [ ] Verify data accuracy against exchange official data
+- [ ] Set up separate cron job for futures (different market hours)
+- [ ] Document usage in README
+
+**Estimated Effort:** 15-22 hours (full implementation)
+**Quick Path (AKShare only):** 4-6 hours
+
+**API Endpoints Verified:**
+| API | Symbol Format | Status |
+|-----|---------------|--------|
+| Sina | `czce_cf2605` | ✅ Works |
+| Tencent | `CF2605` | ⚠️ Needs verification |
+| AKShare | `CF2605` | ✅ Recommended |
+
+**Priority Futures to Track:**
+1. 棉花 (CF) - Zhengzhou
+2. 螺纹钢 (RB) - Shanghai
+3. 铁矿石 (I) - Dalian
+4. 原油 (SC) - Shanghai Energy
+
+---
+
+**Last Updated:** 2026-03-04 (Phase 5 added)  
 **Project Owner:** tiim🐮  
 **Developer:** ClawBot (with Code_G collaboration)  
-**GitHub:** https://github.com/tiimapp/stock-tracker
+**GitHub:** https://github.com/tiimapp/stock-tracker  
+**Docs:** Futures capability verified - AKShare recommended
