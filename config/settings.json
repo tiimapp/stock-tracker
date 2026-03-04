@@ -1,0 +1,54 @@
+{
+  "schedule": {
+    "time": "15:30",
+    "timezone": "Asia/Shanghai",
+    "cron_expr": "30 15 * * 1-5"
+  },
+  "delivery": {
+    "channel": "discord",
+    "channel_id": "1475775915844960428",
+    "channel_name": "#show-me-the-money"
+  },
+  "data_sources": {
+    "price": {
+      "provider": "sina",
+      "endpoint": "https://hq.sinajs.cn/list={symbol}"
+    },
+    "news": [
+      {
+        "provider": "sina_finance",
+        "priority": 1,
+        "search_query": "{stock_name} 新浪财经"
+      },
+      {
+        "provider": "eastmoney",
+        "priority": 2,
+        "search_query": "{stock_name} 东方财富网"
+      },
+      {
+        "provider": "sse_announcements",
+        "priority": 0,
+        "search_query": "{stock_name} 上交所公告"
+      }
+    ]
+  },
+  "analysis": {
+    "macd": {
+      "ema_short": 12,
+      "ema_long": 26,
+      "ema_signal": 9,
+      "history_days": 30
+    },
+    "trend": {
+      "days": 5
+    }
+  },
+  "retry": {
+    "max_attempts": 3,
+    "delay_seconds": 5
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/stock-tracker.log"
+  }
+}

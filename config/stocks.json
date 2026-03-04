@@ -1,0 +1,13 @@
+{
+  "stocks": [
+    {
+      "symbol": "sh688777",
+      "name": "中控技术",
+      "name_en": "Supcon Technology",
+      "market": "科创板",
+      "sector": "工业自动化",
+      "active": true
+    }
+  ],
+  "last_updated": "2026-03-01"
+}
