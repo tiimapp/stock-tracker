@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Main entry point - Orchestrates fetch → analyze → report pipeline.
+Supports A-shares and commodity futures via AKShare (cost-free data).
 
 Usage:
     python src/main.py [--config <path>] [--test]
@@ -17,7 +18,8 @@ from typing import Dict, Optional
 # Add src directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fetcher import fetch_price_data, fetch_all_news, fetch_historical_prices
+# Use hybrid fetcher for overseas server compatibility
+from hybrid_fetcher import fetch_price_data, fetch_news, fetch_historical_prices, DATA_DELAY_WARNING
 from analyzer import analyze_stock
 from reporter import format_report, save_report
 
@@ -108,8 +110,8 @@ def get_default_config() -> Dict:
         },
         'data_sources': {
             'price': {
-                'provider': 'sina',
-                'endpoint': 'https://hq.sinajs.cn/list={symbol}'
+                'provider': 'akshare',
+                'note': 'AKShare cost-free data (15-20min delay)'
             }
         },
         'analysis': {
@@ -162,8 +164,9 @@ def load_stocks(config_path: str = None) -> list:
         logging.error(f"Failed to load stocks config: {e}")
         # Default stock
         return [{
-            'symbol': 'sh688777',
+            'symbol': '688777',
             'name': '中控技术',
+            'type': 'A',
             'active': True
         }]
 
@@ -180,8 +183,9 @@ def run_pipeline(stock: Dict, config: Dict, logger: logging.Logger) -> Dict:
     Returns:
         Pipeline result dictionary
     """
-    symbol = stock.get('symbol', 'sh688777')
+    symbol = stock.get('symbol', '688777')
     stock_name = stock.get('name', '中控技术')
+    stock_type = stock.get('type', 'A')  # 'A' for A-shares, 'futures' for commodity futures
     stock_code = symbol.replace('sh', '').replace('sz', '')
     
     result = {
@@ -193,12 +197,12 @@ def run_pipeline(stock: Dict, config: Dict, logger: logging.Logger) -> Dict:
     
     try:
         # Step 1: Fetch price data
-        logger.info(f"Step 1: Fetching price data for {stock_name} ({symbol})")
+        logger.info(f"Step 1: Fetching price data for {stock_name} ({symbol}) [Type: {stock_type}]")
         retry_config = config.get('retry', {})
         price_data = fetch_price_data(
             symbol,
-            retry=retry_config.get('max_attempts', 3),
-            delay=retry_config.get('delay_seconds', 5)
+            symbol_type=stock_type,
+            retry=retry_config.get('max_attempts', 3)
         )
         
         if not price_data:
@@ -211,7 +215,8 @@ def run_pipeline(stock: Dict, config: Dict, logger: logging.Logger) -> Dict:
         logger.info("Step 2: Fetching historical data")
         historical_prices = fetch_historical_prices(
             symbol,
-            days=config.get('analysis', {}).get('macd', {}).get('history_days', 30)
+            days=config.get('analysis', {}).get('macd', {}).get('history_days', 30),
+            symbol_type=stock_type
         )
         
         # If no historical data, use current price as placeholder
@@ -219,10 +224,16 @@ def run_pipeline(stock: Dict, config: Dict, logger: logging.Logger) -> Dict:
             logger.warning("No historical data available, using current price only")
             # MACD will handle this gracefully
         
-        # Step 3: Fetch news
-        logger.info("Step 3: Fetching news")
-        news_data = fetch_all_news(stock_name, stock_code)
-        result['news_data'] = news_data
+        # Step 3: Fetch news (only for A-shares, not futures)
+        if stock_type == "A":
+            logger.info("Step 3: Fetching news")
+            # Hybrid fetcher returns list, wrap in dict for reporter compatibility
+            news_list = fetch_news(stock_name, limit=5)
+            news_data = {'eastmoney': news_list}  # AKShare uses Eastmoney source
+            result['news_data'] = news_data
+        else:
+            logger.info("Step 3: Skipping news (futures)")
+            result['news_data'] = {}
         
         # Step 4: Analyze
         logger.info("Step 4: Performing technical analysis")
@@ -231,7 +242,7 @@ def run_pipeline(stock: Dict, config: Dict, logger: logging.Logger) -> Dict:
         
         # Step 5: Format report
         logger.info("Step 5: Formatting report")
-        report = format_report(price_data, analysis, news_data)
+        report = format_report(price_data, analysis, result.get('news_data', {}), stock_type=stock_type)
         result['report'] = report
         
         # Step 6: Save report to file
@@ -277,7 +288,7 @@ def send_to_discord(report: str, channel_id: str) -> bool:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(description='Stock Tracker - Daily Report Generator')
+    parser = argparse.ArgumentParser(description='Stock Tracker - Daily Report Generator (AKShare)')
     parser.add_argument('--config', '-c', help='Path to settings.json')
     parser.add_argument('--stocks', '-s', help='Path to stocks.json')
     parser.add_argument('--test', '-t', action='store_true', help='Test mode (no Discord send)')
@@ -294,7 +305,8 @@ def main():
     logger = setup_logging(log_file, log_level)
     
     logger.info("=" * 60)
-    logger.info("Stock Tracker - Daily Report Generator")
+    logger.info("Stock Tracker - Daily Report Generator (AKShare)")
+    logger.info(f"Data Source: AKShare (cost-free, 15-20min delay)")
     logger.info(f"Start time: {datetime.now().isoformat()}")
     logger.info("=" * 60)
     
